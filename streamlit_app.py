@@ -4,50 +4,51 @@ import struct
 from collections import deque
 import time
 
+# Constants
+UDP_IP = "0.0.0.0"  # Listen on all interfaces
+UDP_PORT = 5005
+MAX_POINTS = 100
+
 # Set up Streamlit UI
 st.title("Lung Sounds Data Stream")
 
-# Set the maximum number of data points to display on the plot
-MAX_POINTS = 100
+# Initialize or retrieve shared resources
+if "data_queue" not in st.session_state:
+    st.session_state.data_queue = deque(maxlen=MAX_POINTS)
+if "line_chart" not in st.session_state:
+    st.session_state.line_chart = st.line_chart([0] * MAX_POINTS)
 
-# Set up UDP socket to listen
-UDP_IP = "0.0.0.0"  # Listen on all interfaces
-UDP_PORT = 5005
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind((UDP_IP, UDP_PORT))
+# Create or reuse the UDP socket
+if "udp_socket" not in st.session_state:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((UDP_IP, UDP_PORT))
+    sock.settimeout(0.1)
+    st.session_state.udp_socket = sock
+else:
+    sock = st.session_state.udp_socket
 
-st.write("Listening for UDP packets...")
+# Clear Chart Button
+if st.button("Clear Chart"):
+    st.session_state.data_queue.clear()
+    st.session_state.line_chart = st.line_chart([0] * MAX_POINTS)  # Reset chart
 
-# Set up a deque to hold incoming data for plotting
-data_queue = deque(maxlen=MAX_POINTS)
+# Listen for UDP data
+try:
+    while True:
+        try:
+            # Receive data from the UDP socket
+            data, addr = sock.recvfrom(1024)  # Receive UDP packets
+            value = struct.unpack('<i', data)[0]  # Decode the UDP packet
 
-# Initialize line chart
-st.write("Streaming Data...")
-line_chart = st.line_chart([0] * MAX_POINTS)  # Dummy initial values
+            # Add received value to deque for visualization
+            st.session_state.data_queue.append(value)
 
-# Add a "Clear Chart" button
-if st.button("Clear Data"):
-    # Clear the deque
-    data_queue.clear()
-    # Reset the chart with dummy data
-    line_chart.line_chart([0] * MAX_POINTS)
+            # Update the chart with the new value
+            st.session_state.line_chart.add_rows([[value]])  # Dynamically append only new data
+        except socket.timeout:
+            pass  # Handle timeout gracefully
 
-while True:
-    try:
-        # Receive data from the UDP socket
-        sock.settimeout(0.1)  # Timeout to ensure Streamlit doesn't hang
-        data, addr = sock.recvfrom(1024)  # Receive UDP packets
-        value = struct.unpack('<i', data)[0]  # Decode the UDP packet
-
-        # Add received value to deque for visualization
-        data_queue.append(value)
-
-        # Use add_rows to dynamically add values to the chart
-        if len(data_queue) > 0:
-            line_chart.add_rows([[value]])  # Dynamically append only new data
-
-    except socket.timeout:
-        pass  # Handle timeout gracefully
-
-    # Allow Streamlit loop to stay responsive
-    time.sleep(0.01)
+        # Allow Streamlit loop to stay responsive
+        time.sleep(0.01)
+except KeyboardInterrupt:
+    sock.close()
