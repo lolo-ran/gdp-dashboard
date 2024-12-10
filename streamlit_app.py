@@ -5,7 +5,7 @@ from collections import deque
 import time
 
 # Set up Streamlit UI
-st.title("Real-Time UDP Data Stream")
+st.title("Real-Time UDP Data Stream with add_rows")
 
 # Set the maximum number of data points to display on the plot
 MAX_POINTS = 100
@@ -21,29 +21,26 @@ st.write("Listening for UDP packets...")
 # Set up a deque to hold incoming data for plotting
 data_queue = deque(maxlen=MAX_POINTS)
 
-# Initialize the line_chart with some empty data
+# Initialize line chart
 st.write("Streaming Data...")
-line_chart = st.line_chart([0] * MAX_POINTS)  # Initialize with dummy values
+line_chart = st.line_chart([0] * MAX_POINTS)  # Dummy initial values
 
-# Main loop for real-time data streaming
 while True:
     try:
         # Receive data from the UDP socket
-        sock.settimeout(0.1)  # Timeout to keep Streamlit UI responsive
+        sock.settimeout(0.1)  # Timeout to ensure Streamlit doesn't hang
         data, addr = sock.recvfrom(1024)  # Receive UDP packets
-        # Decode the data
-        value = struct.unpack('<i', data)[0]
-        st.write(f"Received data value: {value}")
-        # Update deque with received values
+        value = struct.unpack('<i', data)[0]  # Decode the UDP packet
+
+        # Add received value to deque for visualization
         data_queue.append(value)
 
-        # Only redraw when deque has updated data
-        if len(data_queue):
-            # Send the latest window of data for plotting
-            line_chart.line_chart_data = list(data_queue)
+        # Use add_rows to dynamically add values to the chart
+        if len(data_queue) > 0:
+            line_chart.add_rows([[value]])  # Dynamically append only new data
 
     except socket.timeout:
-        pass  # If no UDP data is received, proceed without blocking
+        pass  # Handle timeout gracefully
 
-    # Short delay
+    # Allow Streamlit loop to stay responsive
     time.sleep(0.01)
