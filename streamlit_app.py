@@ -21,28 +21,29 @@ st.write("Listening for UDP packets...")
 # Set up a deque to hold incoming data for plotting
 data_queue = deque(maxlen=MAX_POINTS)
 
-# Use Streamlit's line_chart for efficient dynamic plotting
+# Initialize the line_chart with some empty data
 st.write("Streaming Data...")
-line_chart = st.line_chart([0] * MAX_POINTS)  # Initialize with empty data
+line_chart = st.line_chart([0] * MAX_POINTS)  # Initialize with dummy values
 
+# Main loop for real-time data streaming
 while True:
     try:
-        # Receive raw data from the UDP socket
-        sock.settimeout(0.1)  # Add timeout to ensure Streamlit doesn't block
-        data, addr = sock.recvfrom(1024)  # Buffer size
-        # Decode the 32-bit integer from raw binary
+        # Receive data from the UDP socket
+        sock.settimeout(0.1)  # Timeout to keep Streamlit UI responsive
+        data, addr = sock.recvfrom(1024)  # Receive UDP packets
+        # Decode the data
         value = struct.unpack('<i', data)[0]
-        
-        # Update the data queue with new data
+        st.write(f"Received data value: {value}")
+        # Update deque with received values
         data_queue.append(value)
-        
-        # Update the line chart dynamically with data only when deque is updated
-        if len(data_queue) > 0:
-            line_chart.line_chart_data = list(data_queue)  # Send only recent deque data for plotting
+
+        # Only redraw when deque has updated data
+        if len(data_queue):
+            # Send the latest window of data for plotting
+            line_chart.line_chart_data = list(data_queue)
 
     except socket.timeout:
-        # Handle timeout gracefully
-        continue
+        pass  # If no UDP data is received, proceed without blocking
 
-    # Wait a tiny bit to pace the loop
+    # Short delay
     time.sleep(0.01)
