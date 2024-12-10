@@ -25,6 +25,13 @@ data_queue = deque(maxlen=MAX_POINTS)
 st.write("Streaming Data...")
 line_chart = st.line_chart([0] * MAX_POINTS)  # Dummy initial values
 
+# Add a "Clear Chart" button
+if st.button("Clear Data"):
+    # Clear the deque
+    data_queue.clear()
+    # Reset the chart with dummy data
+    line_chart.line_chart([0] * MAX_POINTS)
+
 while True:
     try:
         # Receive data from the UDP socket
