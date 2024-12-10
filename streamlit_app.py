@@ -17,8 +17,6 @@ if "data_queue" not in st.session_state:
     st.session_state.data_queue = deque(maxlen=MAX_POINTS)
 if "line_chart" not in st.session_state:
     st.session_state.line_chart = st.line_chart([0] * MAX_POINTS)
-
-# Create or reuse the UDP socket
 if "udp_socket" not in st.session_state:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((UDP_IP, UDP_PORT))
@@ -30,7 +28,7 @@ else:
 # Clear Chart Button
 if st.button("Clear Chart"):
     st.session_state.data_queue.clear()
-    st.session_state.line_chart = st.line_chart([0] * MAX_POINTS)  # Reset chart
+    st.session_state.line_chart = st.line_chart([0] * MAX_POINTS)  # Create a new chart instance
 
 # Listen for UDP data
 try:
