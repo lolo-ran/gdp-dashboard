@@ -5,7 +5,7 @@ from collections import deque
 import time
 
 # Set up Streamlit UI
-st.title("Lung Sounds Data Stream")
+st.title("Real-Time UDP Data Stream")
 
 # Set the maximum number of data points to display on the plot
 MAX_POINTS = 100
@@ -23,7 +23,7 @@ data_queue = deque(maxlen=MAX_POINTS)
 
 # Use Streamlit's line_chart for efficient dynamic plotting
 st.write("Streaming Data...")
-line_chart = st.line_chart([0]*MAX_POINTS)  # Initialize with empty data
+line_chart = st.line_chart([0] * MAX_POINTS)  # Initialize with empty data
 
 while True:
     try:
@@ -32,12 +32,17 @@ while True:
         data, addr = sock.recvfrom(1024)  # Buffer size
         # Decode the 32-bit integer from raw binary
         value = struct.unpack('<i', data)[0]
-        data_queue.append(value)  # Add value to the deque
+        
+        # Update the data queue with new data
+        data_queue.append(value)
+        
+        # Update the line chart dynamically with data only when deque is updated
+        if len(data_queue) > 0:
+            line_chart.line_chart_data = list(data_queue)  # Send only recent deque data for plotting
+
     except socket.timeout:
-        pass  # No data received in timeout
+        # Handle timeout gracefully
+        continue
 
-    # Update the line chart with the current data window
-    if len(data_queue) > 0:
-        line_chart.line_chart_data = list(data_queue)  # Dynamically update data in the visualization
-
-    time.sleep(0.01)  # Short delay to pace UI updates
+    # Wait a tiny bit to pace the loop
+    time.sleep(0.01)
