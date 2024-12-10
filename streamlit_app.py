@@ -5,7 +5,7 @@ from collections import deque
 import time
 
 # Set up Streamlit UI
-st.title("Real-Time UDP Data Stream with add_rows")
+st.title("Lung Sounds Data Stream")
 
 # Set the maximum number of data points to display on the plot
 MAX_POINTS = 100
